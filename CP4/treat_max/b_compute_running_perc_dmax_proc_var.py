@@ -10,7 +10,6 @@ import xarray as xr
 
 from config import DATAPATH, CP4OUTPATH
 from CP4.treat_max.a_make_dmax_proc_var import load_proc_var_dmax
-from CP4.plots.p_config import cmaps
 
 
 ### CST ###
