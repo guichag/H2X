@@ -350,15 +350,9 @@ if __name__ == '__main__':
 
         data = load_var_roll_mean(ds, res, var, y, window, months, lat_range, lon_range)
 
-        #if var == 't2':
-        #    data = data - 273.15
-        #if (var == 'lsRain') or (var == 'sw_net') or (var == 'lw_net') or (var == 'lh') or (var == 'sh'):
-        #    data = data.interp(time=var_ref_data.time)
         if (var == 'u10') or (var == 'v10'):
             print('Regrid %s data' % var)
             data = data.interp(latitude=var_ref_data.latitude.values, longitude=var_ref_data.longitude.values)
-        #if var == 'lsRain':
-        #    data = data * 3600
 
         boxshape = data.sel(latitude=slice(lat_cen-swlat/2, lat_cen+swlat/2), longitude=slice(lon_cen-swlon/2, lon_cen+swlon/2)).isel(time=0).shape   # get shape of a complete box
 
@@ -407,8 +401,6 @@ if __name__ == '__main__':
 
             print('\n  -- {0},{1} {2}: {3} --'.format(tmaxlat, tmaxlon, loc_zone, datestr))
             print(np.unravel_index(np.nanargmax(data_hhee_.values), data_hhee_.values.shape)[0], data_hhee_.max().values)
-
-            #sys.exit()
 
     var_hhee_vals = np.asarray(var_hhee_vals)
     var_hhee_clims = np.asarray(var_hhee_clims)
