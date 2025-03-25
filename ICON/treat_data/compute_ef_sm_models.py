@@ -35,7 +35,7 @@ def load_sm_ef_model_number(dataset='ICON', experiment='ngc4008', zoom=9, year0=
     months_ = "-".join([str(m) for m in months])
 
     datapath = DATADIR + '/' + dataset + '/' + experiment + '/ef/lat={0},{1}_lon={2},{3}'.format(lat_min, lat_max, lon_min, lon_max) + '/z' + str(zoom) + '/' + years_ + '/' + months_
-    outfile = datapath + '/ef_sm_model_numbers_level=' + str(level) + '.nc'
+    outfile = datapath + '/ef_sm_model_number_level=' + str(level) + '.nc'
     out = xr.open_dataarray(outfile)
 
     return out
@@ -206,16 +206,16 @@ if __name__ == '__main__':
     lmonths = [imths[m] for m in months]
     lmonths = list(itertools.chain(*lmonths))
 
-
-    print("\n-- Make land mask --")
-
     lats = efs.lat.values
     lons = efs.lon.values
+
+
+    '''print("\n-- Make land mask --")
+
     lons_, lats_ = np.meshgrid(lons, lats)
     land_mask = is_land(lats_, lons_)
-
     efs_land = efs.where(land_mask).isel(time=lmonths)
-    sms_land = sms.where(land_mask).isel(time=lmonths)
+    sms_land = sms.where(land_mask).isel(time=lmonths)'''
 
     out_nums = xr.DataArray(data=None, dims=['lat', 'lon'], coords=dict(lat=(['lat'], lats), lon=(['lon'], lons)))
     out_wilts = xr.DataArray(data=None, dims=['lat', 'lon'], coords=dict(lat=(['lat'], lats), lon=(['lon'], lons)))
@@ -226,25 +226,36 @@ if __name__ == '__main__':
 
     print("-- Compute piecewise linear regression --")
 
-    for ilat, lat in enumerate(lats):  # [12.24]
+    for ilat, lat in enumerate(lats):
         print('\n>>> {0} <<<'.format(lat))
 
-        for ilon, lon in enumerate(lons):  # [6.88]
-            efs_pt = efs_land.isel(lat=ilat, lon=ilon)  #, method='nearest')
-            sms_pt = sms_land.isel(lat=ilat, lon=ilon)  # , method='nearest')
+        for ilon, lon in enumerate(lons):
+            if is_land(lat, lon):
+                efs_pt = efs.sel(lat=lat, lon=lon, method='nearest')
+                sms_pt = sms.sel(lat=lat, lon=lon, method='nearest')
 
-            df = pd.DataFrame(data={'sm': sms_pt, 'ef': efs_pt})
-            df_ = df.dropna(axis=0, how='any')
-            df_ = df_[(df_.ef >= 0) & (df_.ef <= 1)]
-            df_.sort_values('sm', inplace=True)
+                #if not (np.isnan(efs_pt.values).all()) and not (np.isnan(sms_pt.values).all()):
+                df = pd.DataFrame(data={'sm': sms_pt, 'ef': efs_pt})
+                df_ = df.dropna(axis=0, how='any')
+                df_ = df_.sort_values('sm')
+                #df_['sm_std'] = (df_.sm - df_.sm.mean()) / df_.sm.std()
 
-            models = LACR(df_.sm.values, df_.ef.values)
+                models = LACR(df_.sm.values, df_.ef.values)
 
-            out_nums.loc[lat, lon] = models.get_best_model_number()
-            out_wilts.loc[lat, lon] = models.get_wilting_point()
-            out_crits.loc[lat, lon] = models.get_critical_point()
-            out_slopes.loc[lat, lon] = models.get_slope()
-            out_t_trans.loc[lat, lon] = models.get_transitional_time_frac()
+                out_nums.loc[lat, lon] = models.get_best_model_number()
+                out_wilts.loc[lat, lon] = models.get_wilting_point()
+                out_crits.loc[lat, lon] = models.get_critical_point()
+                out_slopes.loc[lat, lon] = models.get_slope()
+                out_t_trans.loc[lat, lon] = models.get_transitional_time_frac()
+
+            else:
+                out_nums.loc[lat, lon] = np.nan
+                out_wilts.loc[lat, lon] = np.nan
+                out_crits.loc[lat, lon] = np.nan
+                out_slopes.loc[lat, lon] = np.nan
+                out_t_trans.loc[lat, lon] = np.nan
+
+            #sys.exit()
 
             '''plt.figure()
             xd = np.linspace(df_.sm.min(), df_.sm.max(), len(df_.sm))
