@@ -196,6 +196,9 @@ if __name__ == '__main__':
         ef = load_data_ICON(dataset=ds, experiment=exp, zoom=zoom, variable='ef', year=y, lat_range=(lat_min, lat_max), lon_range=(lon_min, lon_max))
         sm = load_data_multi_level_ICON(dataset=ds, experiment=exp, zoom=zoom, variable='sm', year=y, lat_range=(lat_min, lat_max), lon_range=(lon_min, lon_max), level=level)
 
+        if (len(ef.time) > 366):  # resample EF to daily
+            ef = efs.resample(time='1D').mean()
+
         efs.append(ef)
         sms.append(sm)
 
@@ -205,6 +208,9 @@ if __name__ == '__main__':
     imths = efs.groupby('time.month').groups
     lmonths = [imths[m] for m in months]
     lmonths = list(itertools.chain(*lmonths))
+
+    efs = efs.isel(time=lmonths)
+    sms = sms.isel(time=lmonths)
 
     lats = efs.lat.values
     lons = efs.lon.values
@@ -224,7 +230,7 @@ if __name__ == '__main__':
     out_t_trans = xr.DataArray(data=None, dims=['lat', 'lon'], coords=dict(lat=(['lat'], lats), lon=(['lon'], lons)))
 
 
-    print("-- Compute piecewise linear regression --")
+    print("\n-- Compute piecewise linear regression --")
 
     for ilat, lat in enumerate(lats):
         print('\n>>> {0} <<<'.format(lat))
@@ -238,15 +244,23 @@ if __name__ == '__main__':
                 df = pd.DataFrame(data={'sm': sms_pt, 'ef': efs_pt})
                 df_ = df.dropna(axis=0, how='any')
                 df_ = df_.sort_values('sm')
-                #df_['sm_std'] = (df_.sm - df_.sm.mean()) / df_.sm.std()
 
                 models = LACR(df_.sm.values, df_.ef.values)
 
-                out_nums.loc[lat, lon] = models.get_best_model_number()
-                out_wilts.loc[lat, lon] = models.get_wilting_point()
-                out_crits.loc[lat, lon] = models.get_critical_point()
-                out_slopes.loc[lat, lon] = models.get_slope()
-                out_t_trans.loc[lat, lon] = models.get_transitional_time_frac()
+                if not df_.sm.std() == 0:
+                    out_nums.loc[lat, lon] = models.get_best_model_number()
+                    out_wilts.loc[lat, lon] = models.get_wilting_point()
+                    out_crits.loc[lat, lon] = models.get_critical_point()
+                    out_slopes.loc[lat, lon] = models.get_slope()
+                    out_t_trans.loc[lat, lon] = models.get_transitional_time_frac()
+                    print(models.get_best_model(), end=' : ', flush=True)
+                else:
+                    out_nums.loc[lat, lon] = np.nan
+                    out_wilts.loc[lat, lon] = np.nan
+                    out_crits.loc[lat, lon] = np.nan
+                    out_slopes.loc[lat, lon] = np.nan
+                    out_t_trans.loc[lat, lon] = np.nan
+                #sys.exit()
 
             else:
                 out_nums.loc[lat, lon] = np.nan
@@ -255,7 +269,6 @@ if __name__ == '__main__':
                 out_slopes.loc[lat, lon] = np.nan
                 out_t_trans.loc[lat, lon] = np.nan
 
-            #sys.exit()
 
             '''plt.figure()
             xd = np.linspace(df_.sm.min(), df_.sm.max(), len(df_.sm))
