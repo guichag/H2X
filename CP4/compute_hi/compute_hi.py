@@ -9,8 +9,8 @@ import xarray as xr
 
 from config import *
 from DATA.read_variables import get_var_filenames, create_CP4_filename
-from CP4.utils.compute_rh import get_rh
-from CP4.compute_hi.hi_formula import *
+from utils.hi_formula import *
+from utils.meteo import get_rh
 
 
 ### CST ###
