@@ -4,4 +4,4 @@ Exploring Humid Heat Extremes in the global (sub)Tropics - NERC Pushing the fron
 
 Code for the paper ``Wet-bulb temperature extremes locally amplified by wet soils'' (https://doi.org/10.1029/2024GL112467) in ~/CP4
 
-Code for the paper ``Mesoscale soil moisture heterogeneity can locally amplify humid heat'' (??) in ~/IUM
+Code for the paper ``Mesoscale soil moisture heterogeneity can locally amplify humid heat'' (https://doi.org/10.1029/2025GL121372) in ~/IUM
